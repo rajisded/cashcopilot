@@ -57,7 +57,7 @@ const initialLogs = [
 ];
 
 export default function Dashboard() {
-  const [activeNav, setActiveNav] = useState('hub');
+  const [activeNav, setActiveNav] = useState<string>('hub');
   const [logs, setLogs] = useState(initialLogs);
   
   // App States for Interactions
@@ -143,10 +143,10 @@ export default function Dashboard() {
         {/* REUSED SIDEBAR FOR OTHER MENUS */}
         <nav className={styles.sidebarNav}>
           <div className={styles.logoIcon}><Building2 size={22} /></div>
-          <div className={cx(styles.navItem, activeNav === 'hub' && styles.active)} onClick={()=>setActiveNav('hub')}><LayoutDashboard size={20} /></div>
-          <div className={cx(styles.navItem, activeNav === 'ai' && styles.active)} onClick={()=>setActiveNav('ai')}><Cpu size={20} /><div className={styles.navBadge}>3</div></div>
-          <div className={cx(styles.navItem, activeNav === 'ar' && styles.active)} onClick={()=>setActiveNav('ar')}><Activity size={20} /></div>
-          <div className={cx(styles.navItem, activeNav === 'doc' && styles.active)} onClick={()=>setActiveNav('doc')}><FileText size={20} /></div>
+          <div className={cx(styles.navItem, (activeNav as string) === 'hub' && styles.active)} onClick={()=>setActiveNav('hub')}><LayoutDashboard size={20} /></div>
+          <div className={cx(styles.navItem, (activeNav as string) === 'ai' && styles.active)} onClick={()=>setActiveNav('ai')}><Cpu size={20} /><div className={styles.navBadge}>3</div></div>
+          <div className={cx(styles.navItem, (activeNav as string) === 'ar' && styles.active)} onClick={()=>setActiveNav('ar')}><Activity size={20} /></div>
+          <div className={cx(styles.navItem, (activeNav as string) === 'doc' && styles.active)} onClick={()=>setActiveNav('doc')}><FileText size={20} /></div>
         </nav>
         <div style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', background: 'var(--bg-main)'}}>
            <LayoutDashboard size={64} style={{color: 'var(--border-strong)', marginBottom: '1rem'}} />
@@ -170,14 +170,14 @@ export default function Dashboard() {
         <div className={cx(styles.navItem, activeNav === 'hub' && styles.active)} onClick={()=>setActiveNav('hub')} title="Overview">
           <LayoutDashboard size={20} />
         </div>
-        <div className={cx(styles.navItem, activeNav === 'ai' && styles.active)} onClick={()=>setActiveNav('ai')} title="AI Tools">
+        <div className={cx(styles.navItem, (activeNav as string) === 'ai' && styles.active)} onClick={()=>setActiveNav('ai')} title="AI Tools">
           <Cpu size={20} />
           <div className={styles.navBadge}>3</div>
         </div>
-        <div className={cx(styles.navItem, activeNav === 'ar' && styles.active)} onClick={()=>setActiveNav('ar')} title="Collections">
+        <div className={cx(styles.navItem, (activeNav as string) === 'ar' && styles.active)} onClick={()=>setActiveNav('ar')} title="Collections">
           <Activity size={20} />
         </div>
-        <div className={cx(styles.navItem, activeNav === 'doc' && styles.active)} onClick={()=>setActiveNav('doc')} title="Reports">
+        <div className={cx(styles.navItem, (activeNav as string) === 'doc' && styles.active)} onClick={()=>setActiveNav('doc')} title="Reports">
           <FileText size={20} />
         </div>
       </nav>
@@ -350,7 +350,7 @@ export default function Dashboard() {
                     <Tooltip 
                       contentStyle={{background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', border: '1px solid var(--border)', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
                       labelStyle={{fontFamily: 'monospace', fontWeight: 800, color: 'var(--text-primary)'}}
-                      formatter={(value: any, name: string) => [fmt(Number(value), true), name === 'actual' ? 'Bank Balance' : name === 'aiBase' ? 'Expected Balance' : 'Prediction Match']}
+                      formatter={(value: any, name: any) => [fmt(Number(value), true), name === 'actual' ? 'Bank Balance' : name === 'aiBase' ? 'Expected Balance' : 'Prediction Match']}
                     />
                     
                     <ReferenceLine x="05/29" stroke="var(--accent)" strokeDasharray="3 3" label={{ position: 'top', value: 'Today', fill: 'var(--accent)', fontSize: 11, fontFamily: 'monospace' }} />
