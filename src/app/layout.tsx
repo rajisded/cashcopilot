@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Omni Core | Market Intelligence",
-  description: "Board-ready analysis in 4 minutes.",
+  title: "CashFlow AI | AI Finance & Collections Co-Pilot",
+  description: "Stop stressing about cash flow. AI-driven forecasting and automated collections.",
 };
 
 export default function RootLayout({

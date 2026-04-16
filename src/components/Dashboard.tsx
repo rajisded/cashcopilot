@@ -1,602 +1,511 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { 
-  Hexagon, Search, Bell, Download, Target, 
-  TrendingUp, Users, Megaphone, Star, ArrowUpRight, 
-  Map, MessageCircle, BarChart2, Cpu, Activity, 
-  Database, GitBranch, LayoutDashboard, Settings, Mic, Send,
-  CheckCircle2, RefreshCw, AlertTriangle, Check
+  Building2, Zap, Cpu, Database, Server,
+  Activity, ArrowUpRight, ArrowDownRight, MoreHorizontal,
+  Bot, FileText, CheckCircle2, ShieldAlert,
+  LayoutDashboard, Globe, BarChart3, Search, Play, ArrowRightLeft
 } from "lucide-react";
 import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, AreaChart, Area
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart, Line
 } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import styles from "./Dashboard.module.css";
 
-// MOCK DATA
-const pricingData = [
-  { name: 'Jan', current: 100, competitor: 95 },
-  { name: 'Feb', current: 100, competitor: 110 },
-  { name: 'Mar', current: 100, competitor: 140 },
-  { name: 'Apr', current: 100, competitor: 190 },
+// --- MOCK CASH FLOW DATA ---
+const baseForecast = [
+  { date: '05/01', actual: 145000, aiBase: 145000, aiHigh: 145000, aiLow: 145000 },
+  { date: '05/08', actual: 132000, aiBase: 132500, aiHigh: 133000, aiLow: 130000 },
+  { date: '05/15', actual: 148000, aiBase: 147500, aiHigh: 150000, aiLow: 145000 },
+  { date: '05/22', actual: 125000, aiBase: 124000, aiHigh: 128000, aiLow: 121000 },
+  { date: '05/29', actual: 110000, aiBase: 110000, aiHigh: 110000, aiLow: 110000 }, // Today
+  { date: '06/05', aiBase: 95000,  aiHigh: 102000, aiLow: 88000  },
+  { date: '06/12', aiBase: 82000,  aiHigh: 96000,  aiLow: 71000  }, // Crunch
+  { date: '06/19', aiBase: 105000, aiHigh: 120000, aiLow: 95000  },
+  { date: '06/26', aiBase: 130000, aiHigh: 155000, aiLow: 115000 },
+  { date: '07/04', aiBase: 120000, aiHigh: 148000, aiLow: 105000 },
 ];
 
-const hiringData = [
-  { name: 'Sales', count: 45 },
-  { name: 'Eng', count: 30 },
-  { name: 'Enterprise', count: 85 },
-  { name: 'Support', count: 20 },
+const extendedForecast = [
+  ...baseForecast,
+  { date: '08/01', aiBase: 135000, aiHigh: 168000, aiLow: 105000 },
+  { date: '09/01', aiBase: 150000, aiHigh: 198000, aiLow: 95000 },
+  { date: '10/01', aiBase: 165000, aiHigh: 228000, aiLow: 85000 },
+  { date: '11/01', aiBase: 190000, aiHigh: 278000, aiLow: 75000 },
 ];
 
-const adData = [
-  { name: 'W1', meta: 400, linkedin: 300 },
-  { name: 'W2', meta: 350, linkedin: 500 },
-  { name: 'W3', meta: 300, linkedin: 800 },
-  { name: 'W4', meta: 200, linkedin: 1200 },
+const unpaidInvoices = [
+  { id: 'INV-1091', client: 'Smith Plumbing', risk: 'high', score: 92, amount: 45200, statusText: 'Escalated to Follow-Up', latency: '24 Days Late', initial: 'SP' },
+  { id: 'INV-1092', client: 'Main Street Cafe', risk: 'high', score: 88, amount: 18500, statusText: 'Auto-SMS Reminder Sent', latency: '12 Days Late', initial: 'MS' },
+  { id: 'INV-1094', client: 'Johnson Roofing', risk: 'med', score: 65, amount: 8200, statusText: 'Email Sequence Active', latency: '4 Days Late', initial: 'JR' },
+  { id: 'INV-1097', client: 'Apex Construction', risk: 'low', score: 14, amount: 32000, statusText: 'Waiting for Due Date', latency: 'Due in 8 Days', initial: 'AC' },
 ];
 
-const sentimentData = [
-  { name: 'Oct', score: 4.8 },
-  { name: 'Nov', score: 4.5 },
-  { name: 'Dec', score: 4.1 },
-  { name: 'Jan', score: 3.8 },
+const initialTransactions = [
+  { id: 'TRX-101', entity: 'Amazon Web Services', type: 'Software', amt: -14204, status: 'completed', flag: 'Cost increased 42%!' },
+  { id: 'TRX-102', entity: 'Stripe Bank Payout', type: 'Income', amt: 84500, status: 'processing', flag: '-' },
+  { id: 'TRX-103', entity: 'Employee Payroll', type: 'Team', amt: -42100, status: 'completed', flag: '-' },
+  { id: 'TRX-104', entity: 'Zoom Meetings', type: 'Software', amt: -1840, status: 'failed', flag: 'Paused by System' },
 ];
 
-const logsSequence = [
-  "INITIALIZING NEURAL NET...",
-  "ACCESSING G2 GRAPH...",
-  "SCRAPING LINKEDIN TALENT POOL...",
-  "ANALYZING AD SPEND TELEMETRY...",
-  "CROSS-REFERENCING PRICING ARCHIVES...",
-  "SYNTHESIZING VERDICT...",
-  "BOARD-READY REPORT GENERATED."
-];
-
-// NAV ITEMS
-const navItems = [
-  { id: 'command', label: 'Command Center', icon: LayoutDashboard, section: 'System' },
-  { id: 'nodes', label: 'Intelligence Nodes', icon: Activity, section: 'System' },
-  { id: 'mapping', label: 'Neural Mapping', icon: GitBranch, section: 'System' },
-  { id: 'genome', label: 'Competitor Genome', icon: Target, section: 'Datasets' },
-  { id: 'signal', label: 'Signal Matrix', icon: Database, section: 'Datasets' },
+const initialLogs = [
+  { tag: 'SYSTEM', msg: 'Dashboard and AI securely connected.', time: '08:00:12', type: '' },
+  { tag: 'BANKING', msg: 'Checked for new bank transactions.', time: '08:00:15', type: '' },
+  { tag: 'FORECAST', msg: 'Updated 90-day cash flow predictions.', time: '08:00:18', type: 'active' },
 ];
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('command');
+  const [activeNav, setActiveNav] = useState('hub');
+  const [logs, setLogs] = useState(initialLogs);
   
-  // COMMAND CENTER STATES
-  const [loading, setLoading] = useState(false);
-  const [queryStarted, setQueryStarted] = useState(false);
-  const [activeLog, setActiveLog] = useState(0);
-  const [inputValue, setInputValue] = useState("");
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  
-  // INTERACTION STATES
-  const [isListening, setIsListening] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadSuccess, setDownloadSuccess] = useState(false);
-  const [isAlertActive, setIsAlertActive] = useState(false);
-  
-  // POPOVER STATES
-  const [showSysMenu, setShowSysMenu] = useState(false);
-  const [showNotifMenu, setShowNotifMenu] = useState(false);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  // App States for Interactions
+  const [scenTriggered, setScenTriggered] = useState(false);
+  const [scenMsg, setScenMsg] = useState("");
+  const [scenInput, setScenInput] = useState("");
+  const [timeHorizon, setTimeHorizon] = useState('90d');
+  const [actionDone, setActionDone] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [txGrid, setTxGrid] = useState(initialTransactions);
+  const [currency, setCurrency] = useState('$');
 
+  // Multiplier for INR conversion
+  const rate = currency === '₹' ? 83 : 1;
+  const fmt = (val: number, hideSign: boolean = false) => {
+    const isNegative = val < 0;
+    const absVal = Math.abs(val);
+    const converted = Math.round(absVal * rate);
+    const prefix = isNegative && !hideSign ? '-' : (val > 0 && !hideSign ? '+' : '');
+    return `${prefix}${currency}${converted.toLocaleString()}`;
+  };
+
+  // Simulated Terminal AI Stream
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (loading) {
-      interval = setInterval(() => {
-        setActiveLog(prev => (prev < logsSequence.length - 1 ? prev + 1 : prev));
-      }, 400); // Quick log progression
-    } else {
-      setActiveLog(0);
-    }
+    let count = 0;
+    const interval = setInterval(() => {
+      count++;
+      if (count === 1) addLog('ALERT', 'Main Street Cafe is repeatedly paying late. Risk score slightly worse.', 'warning');
+      if (count === 3) addLog('COLLECTIONS', 'Sent automatic SMS reminder to Main Street Cafe.', 'active');
+      if (count === 6) addLog('SYSTEM', 'Cleared temporary cache.', '');
+      if (count === 8) addLog('BANKING', 'Connected to accounting software successfully. 14 new records.', 'success');
+      if (count > 9) clearInterval(interval);
+    }, 5500);
     return () => clearInterval(interval);
-  }, [loading]);
+  }, []);
 
-  const simulateAnalysis = (query?: string) => {
-    const val = query || inputValue;
-    if (!val.trim()) return;
-    if (query) setInputValue(query);
+  const addLog = (tag: string, msg: string, type: string) => {
+    const time = new Date().toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit'});
+    setLogs(prev => [{tag, msg, time, type}, ...prev].slice(0, 10));
+  };
+
+  const handleScenarioSubmit = () => {
+    if (!scenInput.trim()) return;
+    setScenTriggered(true);
+    setScenMsg(scenInput);
+    addLog('SCENARIO', `Testing idea: ${scenInput}`, 'active');
+    setScenInput("");
     
-    setLoading(true);
-    setQueryStarted(false);
+    // Simulate delay for AI response
     setTimeout(() => {
-      setLoading(false);
-      setQueryStarted(true);
-      setInputValue("");
-    }, 2800);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      simulateAnalysis();
-    }
-  };
-
-  const handleVoice = () => {
-    setIsListening(true);
-    setInputValue("");
-    setTimeout(() => {
-      setInputValue("Analyze competitor pivot strategy...");
-      setTimeout(() => {
-        setIsListening(false);
-        simulateAnalysis("Analyze competitor pivot strategy...");
-      }, 1000);
+      addLog('RESULT', 'This would reduce your available cash runway by 1.4 months. Proceed with caution.', 'warning');
     }, 2000);
   };
 
-  const handleDownload = () => {
-    setIsDownloading(true);
-    setTimeout(() => {
-      setIsDownloading(false);
-      setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 3000);
-    }, 2000);
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleScenarioSubmit();
   };
 
-  // RENDER CONTENT BASED ON TAB
-  const renderContent = () => {
-    if (activeTab === 'command') {
-      return (
-        <AnimatePresence mode="wait">
-          {!loading && !queryStarted && (
-            <motion.div 
-              key="hero"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={styles.heroContainer}
-            >
-              <Hexagon size={64} className={styles.heroIcon} />
-              <h1 className={styles.heroTitle}>Omni Core Agent</h1>
-              <p className={styles.heroSubtitle}>
-                Stop Googling. Initiate deep-market queries across 6 signal matrices. We synthesize millions of data points into board-ready analysis in seconds.
-              </p>
-              <div className={styles.suggestedQueries}>
-                <div className={styles.suggestedChip} onClick={() => simulateAnalysis("Analyze Competitor X's Q3 market pivot.")}>
-                  Competitor X Q3 Pivot
-                </div>
-                <div className={styles.suggestedChip} onClick={() => simulateAnalysis("Map entry-level pricing changes across top 3 rivals.")}>
-                  Entry Pricing Shifts
-                </div>
-                <div className={styles.suggestedChip} onClick={() => simulateAnalysis("Detect enterprise AE hiring spikes in US.")}>
-                  Enterprise Hiring Radar
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {loading && (
-            <motion.div 
-              key="loader"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className={styles.loaderContainer}
-            >
-              <div className={styles.hexSpinner}>
-                <Hexagon className={styles.hexIcon} />
-              </div>
-              <div className={styles.loadText}>Processing Signal Matrix</div>
-              <div className={styles.loadLogs}>{logsSequence[activeLog]}</div>
-            </motion.div>
-          )}
-
-          {queryStarted && !loading && (
-            <motion.div 
-              key="dashboard"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={styles.dashboardGrid}
-            >
-              {/* DASHBOARD MAIN (LEFT) */}
-              <div className={styles.dashboardMain}>
-                <div className={styles.insightHeaderCard}>
-                  <div className={styles.sysInfoRow}>
-                    <div className={styles.sysBadge}><div className={styles.dot}></div> SYSTEM: ONLINE</div>
-                    <div className={styles.sysBadge}><Activity size={14}/> LATENCY: 14ms</div>
-                    <div className={styles.sysBadge}><Database size={14}/> 6.4K QUERIES COMPLETED</div>
-                  </div>
-                  
-                  <h2 className={styles.verdictTitle}>Pivoting Upmarket</h2>
-                  <p className={styles.verdictText}>
-                    Competitor X is definitively repositioning to target enterprise accounts, abandoning their SMB core functionality. Action required within 30 days to defend midline market share.
-                  </p>
-
-                  <div className={styles.equationGrid}>
-                    <div className={styles.eqNode}>
-                      <span className={styles.eqNodeLabel}>Signal Alpha • Pricing</span>
-                      <span className={styles.eqNodeValue}>+90% MSRP Shift</span>
-                    </div>
-                    <div className={styles.eqNode}>
-                      <span className={styles.eqNodeLabel}>Signal Beta • Hiring</span>
-                      <span className={styles.eqNodeValue}>Enterprise Boom</span>
-                    </div>
-                    <div className={cx(styles.eqNode, styles.result)}>
-                      <span className={styles.eqNodeLabel}>Omni Synthesis</span>
-                      <span className={styles.eqNodeValue}>Strategic Pivot Verified</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.matrixHeader}>
-                  <span className={styles.matrixTitle}>Signal Matrix Breakdown</span>
-                </div>
-
-                <div className={styles.signalsGrid}>
-                  {/* Signal 1 */}
-                  <div className={styles.signalCard}>
-                    <div className={styles.sigTop}>
-                      <div className={styles.sigTitleGroup}>
-                        <div className={styles.sigIconBlock}><TrendingUp size={18} /></div>
-                        <div style={{display: 'flex', flexDirection: 'column'}}>
-                          <span className={styles.sigTitle}>Pricing Structure</span>
-                          <span className={styles.sigMeta}>CONFIDENCE: 99.1%</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.sigChart}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={pricingData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--text-tertiary)', fontSize: 11}} dy={5} />
-                          <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--text-tertiary)', fontSize: 11}} />
-                          <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }} />
-                          <Line type="monotone" dataKey="competitor" stroke="var(--accent)" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className={styles.sigInsight}>
-                      <strong>Observation:</strong> Tiered structures consolidated. Entry-level pricing removed completely in April.
-                    </div>
-                  </div>
-
-                  {/* Signal 2 */}
-                  <div className={styles.signalCard}>
-                    <div className={styles.sigTop}>
-                      <div className={styles.sigTitleGroup}>
-                        <div className={styles.sigIconBlock}><Users size={18} /></div>
-                        <div style={{display: 'flex', flexDirection: 'column'}}>
-                          <span className={styles.sigTitle}>Senior Hire Patterns</span>
-                          <span className={styles.sigMeta}>CONFIDENCE: 97.4%</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.sigChart}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={hiringData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--text-tertiary)', fontSize: 11}} dy={5} />
-                          <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--text-tertiary)', fontSize: 11}} />
-                          <Tooltip cursor={{fill: 'var(--bg-surface-hover)'}} contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }} />
-                          <Bar dataKey="count" fill="#8B5CF6" radius={[4, 4, 0, 0]} barSize={28} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className={styles.sigInsight}>
-                      <strong>Observation:</strong> 85 open reqs for Enterprise AEs. Zero SMB roles posted in Q1.
-                    </div>
-                  </div>
-
-                  {/* Signal 3 */}
-                  <div className={styles.signalCard}>
-                    <div className={styles.sigTop}>
-                      <div className={styles.sigTitleGroup}>
-                        <div className={styles.sigIconBlock}><Megaphone size={18} /></div>
-                        <div style={{display: 'flex', flexDirection: 'column'}}>
-                          <span className={styles.sigTitle}>Ad Spend Movement</span>
-                          <span className={styles.sigMeta}>CONFIDENCE: 92.5%</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.sigChart}>
-                        <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={adData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--text-tertiary)', fontSize: 11}} dy={5} />
-                          <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--text-tertiary)', fontSize: 11}} />
-                          <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }} />
-                          <Area type="monotone" dataKey="linkedin" stackId="1" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.2} />
-                          <Area type="monotone" dataKey="meta" stackId="1" stroke="var(--text-tertiary)" fill="var(--text-tertiary)" fillOpacity={0.1} />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className={styles.sigInsight}>
-                      <strong>Observation:</strong> Reallocating Meta spend heavily to LinkedIn ABM campaigns.
-                    </div>
-                  </div>
-
-                  {/* Signal 4 */}
-                  <div className={styles.signalCard}>
-                    <div className={styles.sigTop}>
-                      <div className={styles.sigTitleGroup}>
-                        <div className={styles.sigIconBlock}><MessageCircle size={18} /></div>
-                        <div style={{display: 'flex', flexDirection: 'column'}}>
-                          <span className={styles.sigTitle}>Review Sentiment</span>
-                          <span className={styles.sigMeta}>CONFIDENCE: 98.8%</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.sigChart}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={sentimentData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--text-tertiary)', fontSize: 11}} dy={5} />
-                          <YAxis domain={[3, 5]} axisLine={false} tickLine={false} tick={{fill: 'var(--text-tertiary)', fontSize: 11}} />
-                          <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }} />
-                          <Line type="monotone" dataKey="score" stroke="var(--danger)" strokeWidth={3} dot={{r: 4, fill: 'var(--danger)'}} activeDot={{r: 6}} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className={styles.sigInsight}>
-                      <strong>Observation:</strong> SMB customers complaining about neglected support and "forced upgrades".
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* DASHBOARD RIGHT (META DATA) */}
-              <aside className={styles.dashboardRight}>
-                <div className={styles.metaPanel}>
-                  <div className={styles.metaHeader}>Omni Diagnostic Score</div>
-                  
-                  <div className={styles.scoreCircle}>
-                    <div className={styles.scoreValue}>96%</div>
-                    <div className={styles.scoreLabel}>Action Confidence</div>
-                  </div>
-
-                  <div className={styles.dataList}>
-                    <div className={styles.dataRow}>
-                      <span className={styles.dataLabel}><Database size={14}/> Sources Checked</span>
-                      <span className={styles.dataVal}>1,402</span>
-                    </div>
-                    <div className={styles.dataRow}>
-                      <span className={styles.dataLabel}><GitBranch size={14}/> Data Nodes</span>
-                      <span className={styles.dataVal}>6</span>
-                    </div>
-                    <div className={styles.dataRow}>
-                      <span className={styles.dataLabel}><Activity size={14}/> Volatility Index</span>
-                      <span className={styles.dataVal} style={{color: 'var(--danger)'}}>High</span>
-                    </div>
-                  </div>
-
-                  <button 
-                    className={cx(styles.actionBtnBig, downloadSuccess && styles.downloadSuccess)} 
-                    onClick={handleDownload}
-                    disabled={isDownloading || downloadSuccess}
-                  >
-                    {downloadSuccess ? (
-                      <><CheckCircle2 size={18} /> Saved to Drive</>
-                    ) : isDownloading ? (
-                      <><RefreshCw size={18} className={styles.pulseMic} /> Compiling PDF...</>
-                    ) : (
-                      <><Download size={18} /> Board-Ready PDF</>
-                    )}
-                  </button>
-                  <button 
-                    className={cx(styles.actionBtnBig, isAlertActive ? styles.alertActive : '')} 
-                    style={(!isAlertActive) ? {background: 'var(--bg-surface-hover)', color: 'var(--text-primary)', boxShadow: 'none'} : {}}
-                    onClick={() => setIsAlertActive(!isAlertActive)}
-                  >
-                    {isAlertActive ? <><Check size={18} /> Tracking Active</> : <><Target size={18} /> Set Tracking Alert</>}
-                  </button>
-                </div>
-              </aside>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      );
-    }
+  // Execute AI Recovery Action
+  const handleSuspendAction = () => {
+    if(actionDone) return;
+    setActionDone(true);
+    addLog('ACTION', 'Paused unused software accounts. Saved money for this month.', 'active');
     
-    // OTHER TABS
+    // Update grid data realistically
+    setTxGrid(prev => prev.map(tx => 
+      tx.id === 'TRX-101' ? { ...tx, flag: 'Issue fixed automatically', status: 'completed' } : tx
+    ));
+  };
+
+  // Process data based on UI states
+  const filteredInvoices = unpaidInvoices.filter(invoice => 
+    invoice.client.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    invoice.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  const chartData = timeHorizon === '90d' ? baseForecast : extendedForecast;
+
+  // Render Tabs conditionally
+  if (activeNav !== 'hub') {
     return (
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={styles.tabContent}
-      >
-        <h1 className={styles.tabTitle}>{navItems.find(n => n.id === activeTab)?.label}</h1>
-        <p className={styles.tabSubtitle}>Live enterprise telemetry and subsystem mapping.</p>
-        
-        <div className={styles.gridCards}>
-          {[1,2,3,4,5,6].map((i) => (
-             <div key={i} className={styles.card}>
-               <div className={styles.cardHeader}>
-                 <div className={styles.cardIcon}><Activity size={20} /></div>
-                 <span>Sync Node Alpha-{i}</span>
-               </div>
-               <div className={styles.cardValue}>{Math.floor(Math.random() * 40) + 60}%</div>
-               <div className={styles.cardLabel}>Operational Efficiency</div>
-               <div className={styles.sysBadge} style={{width: 'fit-content'}}>
-                 <div className={styles.dot}></div> ONLINE
-               </div>
-             </div>
-          ))}
+      <div className={styles.layout}>
+        {/* REUSED SIDEBAR FOR OTHER MENUS */}
+        <nav className={styles.sidebarNav}>
+          <div className={styles.logoIcon}><Building2 size={22} /></div>
+          <div className={cx(styles.navItem, activeNav === 'hub' && styles.active)} onClick={()=>setActiveNav('hub')}><LayoutDashboard size={20} /></div>
+          <div className={cx(styles.navItem, activeNav === 'ai' && styles.active)} onClick={()=>setActiveNav('ai')}><Cpu size={20} /><div className={styles.navBadge}>3</div></div>
+          <div className={cx(styles.navItem, activeNav === 'ar' && styles.active)} onClick={()=>setActiveNav('ar')}><Activity size={20} /></div>
+          <div className={cx(styles.navItem, activeNav === 'doc' && styles.active)} onClick={()=>setActiveNav('doc')}><FileText size={20} /></div>
+        </nav>
+        <div style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', background: 'var(--bg-main)'}}>
+           <LayoutDashboard size={64} style={{color: 'var(--border-strong)', marginBottom: '1rem'}} />
+           <h2 style={{color: 'var(--text-secondary)'}}>System View: {activeNav.toUpperCase()}</h2>
+           <p style={{color: 'var(--text-tertiary)'}}>This page is currently under construction. Please return to Overview.</p>
+           <button onClick={()=>setActiveNav('hub')} style={{marginTop: '1rem', padding: '0.5rem 1rem', background: 'var(--accent)', color: 'white', borderRadius: '8px', cursor: 'pointer', border: 'none'}}>Return to Overview</button>
         </div>
-      </motion.div>
+      </div>
     );
-  };
+  }
 
   return (
     <div className={styles.layout}>
-      {/* SIDEBAR LEFT */}
-      <aside className={styles.sidebarLeft}>
-        <div className={styles.logoArea} onClick={() => setActiveTab('command')}>
-          <Hexagon className={styles.logoIcon} size={28} />
-          Omni Core
-        </div>
-        <div className={styles.navSection}>
-          <div className={styles.navLabel}>System</div>
-          {navItems.filter(i => i.section === 'System').map((item) => (
-            <div 
-              key={item.id}
-              className={cx(styles.navItem, activeTab === item.id && styles.active)}
-              onClick={() => setActiveTab(item.id)}
-            >
-              <item.icon size={18} className={styles.navItemIcon} />
-              {item.label}
-            </div>
-          ))}
-          
-          <div className={styles.navLabel} style={{marginTop: '2rem'}}>Datasets</div>
-          {navItems.filter(i => i.section === 'Datasets').map((item) => (
-            <div 
-              key={item.id}
-              className={cx(styles.navItem, activeTab === item.id && styles.active)}
-              onClick={() => setActiveTab(item.id)}
-            >
-              <item.icon size={18} className={styles.navItemIcon} />
-              {item.label}
-            </div>
-          ))}
+      
+      {/* 1. COMPACT SIDEBAR */}
+      <nav className={styles.sidebarNav}>
+        <div className={styles.logoIcon}>
+          <Building2 size={22} />
         </div>
         
-        <div className={styles.userArea}>
-          <div className={styles.avatar}>SJ</div>
-          <div className={styles.userInfo}>
-            <div className={styles.userName}>Sarah Jenkins</div>
-            <div className={styles.userRole}>Head of Strategy | Pro</div>
-          </div>
-          <Settings 
-            size={18} 
-            color="var(--text-tertiary)" 
-            style={{cursor: 'pointer'}} 
-            onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-          />
+        <div className={cx(styles.navItem, activeNav === 'hub' && styles.active)} onClick={()=>setActiveNav('hub')} title="Overview">
+          <LayoutDashboard size={20} />
+        </div>
+        <div className={cx(styles.navItem, activeNav === 'ai' && styles.active)} onClick={()=>setActiveNav('ai')} title="AI Tools">
+          <Cpu size={20} />
+          <div className={styles.navBadge}>3</div>
+        </div>
+        <div className={cx(styles.navItem, activeNav === 'ar' && styles.active)} onClick={()=>setActiveNav('ar')} title="Collections">
+          <Activity size={20} />
+        </div>
+        <div className={cx(styles.navItem, activeNav === 'doc' && styles.active)} onClick={()=>setActiveNav('doc')} title="Reports">
+          <FileText size={20} />
+        </div>
+      </nav>
 
-          {/* Settings Popover */}
-          <AnimatePresence>
-            {showSettingsMenu && (
+      {/* 2. DYNAMIC TERMINAL / AI STREAM SIDEBAR */}
+      <aside className={styles.sidebarTerminal}>
+        <div className={styles.terminalHeader}>
+          Cash Co-Pilot
+          <div className={styles.statusIndicator}>
+            <div className={styles.pulseDot}></div> Online
+          </div>
+        </div>
+        
+        <div className={styles.terminalStream}>
+          <div className={styles.terminalSectionTitle}>Latest System Activity</div>
+          <AnimatePresence initial={false}>
+            {logs.map((log, i) => (
               <motion.div 
-                initial={{opacity: 0, y: 10}} 
-                animate={{opacity: 1, y: 0}} 
-                exit={{opacity: 0, y: 10}}
-                className={cx(styles.popover, styles.settingsPopover)}
+                key={i + log.time}
+                initial={{ opacity: 0, x: -10, height: 0 }}
+                animate={{ opacity: 1, x: 0, height: 'auto' }}
+                className={cx(styles.logEntry, log.type && styles[log.type as keyof typeof styles])}
               >
-                <div className={styles.popoverHeader}>Account Setup</div>
-                <div className={styles.popoverItem} onClick={() => setShowSettingsMenu(false)}>
-                  <Settings size={16} className={styles.popoverItemIcon} /> Preferences
+                <div className={styles.logMeta}>
+                  <span className={styles.logTag}>[{log.tag}]</span>
+                  <span>{log.time}</span>
                 </div>
-                <div className={styles.popoverItem} onClick={() => setShowSettingsMenu(false)}>
-                  <Database size={16} className={styles.popoverItemIcon} /> API Keys
-                </div>
+                {log.msg}
               </motion.div>
-            )}
+            ))}
           </AnimatePresence>
+
+          <div style={{marginTop: 'auto', paddingTop: '1rem'}}>
+            <div className={styles.terminalSectionTitle}>Suggested Action</div>
+            <div className={styles.aiActionCard}>
+              <div className={styles.aiActionTitle}><Zap size={14} color="#3B82F6" /> Rising Software Costs</div>
+              <div className={styles.aiActionDesc}>Your Amazon Web Services bill Increased 42% suddenly. Stop unused testing servers to save {fmt(3200, true)}.</div>
+              <button 
+                className={styles.execBtn} 
+                onClick={handleSuspendAction}
+                disabled={actionDone}
+                style={actionDone ? {background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', border: '1px solid currentColor', boxShadow: 'none'} : {}}
+              >
+                {actionDone ? <><CheckCircle2 size={16}/> Fixed Successfully</> : "Pause Unused Servers"}
+              </button>
+            </div>
+          </div>
         </div>
       </aside>
 
-      {/* MAIN WRAPPER */}
-      <div className={styles.mainWrapper}>
+      {/* 3. MAIN WORKSPACE */}
+      <main className={styles.mainContent}>
         
-        {/* HEADER */}
-        <header className={styles.header}>
-          <div className={styles.breadcrumbs}>
-            Omni Core <span style={{margin: '0 0.5rem', opacity: 0.5}}>/</span> 
-            <span className={styles.breadcrumbActive}>
-              {navItems.find(n => n.id === activeTab)?.label}
-            </span>
+        {/* TOP BAR */}
+        <header className={styles.topBar}>
+          <div className={styles.topBreadcrumbs}>
+            <LayoutDashboard size={24} color="var(--accent)" />
+            Overview
           </div>
-          <div className={styles.headerActions}>
-            <button className={cx(styles.iconBtn, showSysMenu && styles.active)} onClick={() => {setShowSysMenu(!showSysMenu); setShowNotifMenu(false);}}>
-              <Cpu size={20} />
-            </button>
-            <button className={cx(styles.iconBtn, showNotifMenu && styles.active)} onClick={() => {setShowNotifMenu(!showNotifMenu); setShowSysMenu(false);}}>
-              <Bell size={20} />
-              <span className={styles.notifBadge}></span>
-            </button>
+          
+          <div className={styles.sysMetrics}>
+            <div className={styles.metricChunk}><Server size={14}/> Connection: Secure</div>
+            <div className={cx(styles.metricChunk, styles.highlight)}><Database size={14}/> Records Analyzed: 1.2M</div>
+          </div>
 
-            {/* System Popover */}
-            <AnimatePresence>
-            {showSysMenu && (
-              <motion.div 
-                initial={{opacity: 0, y: 10}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: 10}}
-                className={cx(styles.popover, styles.systemPopover)}
+          <div className={styles.actionsRight}>
+             <button 
+                onClick={() => setCurrency(c => c === '$' ? '₹' : '$')}
+                style={{display: 'flex', alignItems: 'center', gap: '5px', padding: '0.4rem 0.8rem', background: 'var(--accent-light)', color: 'var(--accent)', border: '1px solid currentColor', borderRadius: '8px', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem'}}
               >
-                <div className={styles.popoverHeader}><span>System Status</span> <div className={styles.sysBadge}><div className={styles.dot}></div></div></div>
-                <div className={styles.popoverItem}><Activity size={16} className={styles.popoverItemIcon}/> Cluster Alpha: Online</div>
-                <div className={styles.popoverItem}><GitBranch size={16} className={styles.popoverItemIcon}/> Neural Mapping: 14ms ping</div>
-                <div className={styles.popoverItem}><Database size={16} className={styles.popoverItemIcon}/> DB Sync: Connected</div>
-              </motion.div>
-            )}
-            </AnimatePresence>
-
-            {/* Notif Popover */}
-            <AnimatePresence>
-            {showNotifMenu && (
-              <motion.div 
-                initial={{opacity: 0, y: 10}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: 10}}
-                className={styles.popover}
-              >
-                <div className={styles.popoverHeader}>Notifications</div>
-                <div className={styles.popoverItem} style={{alignItems: 'flex-start'}}>
-                  <AlertTriangle size={16} className={styles.popoverItemIcon} style={{color: 'var(--warning)', marginTop: '2px'}}/> 
-                  <div>
-                    <div style={{fontWeight: 700, color: 'var(--text-primary)'}}>Competitor X Alert</div>
-                    <div>Pricing anomaly detected in EMEA region.</div>
-                  </div>
-                </div>
-                <div className={styles.popoverItem} style={{alignItems: 'flex-start'}}>
-                  <Target size={16} className={styles.popoverItemIcon} style={{marginTop: '2px'}}/> 
-                  <div>
-                    <div style={{fontWeight: 700, color: 'var(--text-primary)'}}>Goal Reached</div>
-                    <div>Quarterly scrape quota has completed.</div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-            </AnimatePresence>
-
+               <ArrowRightLeft size={14} /> Currency ({currency})
+             </button>
+            <div className={styles.searchBox}>
+              <Search size={16} />
+              <input 
+                type="text" 
+                placeholder="Search clients (e.g. Smith)..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
         </header>
 
-        {/* CONTENT AREA */}
-        <div className={styles.contentArea}>
-          {renderContent()}
-        </div>
+        {/* DATA GRID AREA */}
+        <div className={styles.dashboardGrid}>
+          
+          {/* HIGH LEVEL METRICS */}
+          <div className={styles.metricNodes}>
+             <div className={styles.metricNode}>
+               <div className={styles.nodeDecor}></div>
+               <div className={styles.nodeCat}><Database size={14}/> Total Cash Available</div>
+               <div className={styles.nodeVal}>{fmt(110034, true)}</div>
+               <div className={styles.nodeDelta}>
+                 <ArrowDownRight size={14} className={styles.deltaNeg} />
+                 <span className={styles.deltaNeg}>8.2%</span>
+                 <span className={styles.deltaLabel}>less than last month</span>
+               </div>
+             </div>
 
-        {/* FLOATING CHATBOT BAR */}
-        {activeTab === 'command' && (
-          <div className={styles.chatbotWrapper}>
-            <div className={styles.chatbotInner}>
-              <div className={styles.chatInputArea}>
-                <textarea 
-                  ref={inputRef}
-                  className={styles.chatInput} 
-                  placeholder={isListening ? "Listening..." : "Type your strategic query to Omni Core..."}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={loading || isListening}
-                  rows={1}
-                />
-                <div className={styles.chatActions}>
-                  <button className={styles.voiceBtn} onClick={handleVoice}>
-                    <Mic size={18} className={isListening ? styles.pulseMic : ""} />
-                  </button>
-                  <button 
-                    className={cx(styles.sendBtn, inputValue.trim() ? styles.active : '')}
-                    onClick={() => simulateAnalysis()}
-                    disabled={!inputValue.trim() || loading || isListening}
-                  >
-                    {loading ? <RefreshCw size={16} className={styles.pulseMic} style={{color: 'white'}} /> : <Send size={16} style={{marginLeft: '2px'}} />}
-                  </button>
+             <div className={styles.metricNode}>
+               <div className={styles.nodeDecor}></div>
+               <div className={styles.nodeCat}><Activity size={14}/> Cash Runway</div>
+               <div className={styles.nodeVal}>4.2 Mo</div>
+               <div className={styles.nodeDelta}>
+                 <ShieldAlert size={14} className={styles.deltaNeg} />
+                 <span className={styles.deltaNeg}>Risk Found</span>
+                 <span className={styles.deltaLabel}>Funds empty by September</span>
+               </div>
+             </div>
+
+             <div className={styles.metricNode}>
+               <div className={styles.nodeDecor}></div>
+               <div className={styles.nodeCat}><Database size={14}/> Total Outstanding Invoices</div>
+               <div className={styles.nodeVal}>{fmt(103900, true)}</div>
+               <div className={styles.nodeDelta}>
+                 <Activity size={14} className={styles.deltaNeg} />
+                 <span className={styles.deltaNeg}>{fmt(63000, true)}</span>
+                 <span className={styles.deltaLabel}>Flagged as High-Risk</span>
+               </div>
+             </div>
+
+             <div className={styles.metricNode}>
+               <div className={styles.nodeDecor}></div>
+               <div className={styles.nodeCat}><Cpu size={14}/> Auto-Collected This Month</div>
+               <div className={styles.nodeVal}>{fmt(42500, true)}</div>
+               <div className={styles.nodeDelta}>
+                 <ArrowUpRight size={14} className={styles.deltaPos} />
+                 <span className={styles.deltaPos}>Active</span>
+                 <span className={styles.deltaLabel}>via automatic reminders</span>
+               </div>
+             </div>
+          </div>
+
+          {/* MAIN CHART CANVAS: AI Predictive Tunnel */}
+          <div className={cx(styles.glassCard, styles.neuralCanvas)}>
+             <div className={styles.glassCardHeader}>
+                <div className={styles.glassCardTitle}>
+                  <BarChart3 size={20} color="var(--accent)" />
+                  Cash Flow Forecast
                 </div>
+                <div className={styles.segControl}>
+                  <div 
+                    className={cx(styles.segItem, timeHorizon === '90d' && styles.active)}
+                    onClick={() => setTimeHorizon('90d')}
+                  >
+                    Next 90 Days
+                  </div>
+                  <div 
+                    className={cx(styles.segItem, timeHorizon === '1Yr' && styles.active)}
+                    onClick={() => setTimeHorizon('1Yr')}
+                  >
+                    1-Year Setup
+                  </div>
+                </div>
+             </div>
+             
+             <div className={styles.chartWrapper}>
+               <ResponsiveContainer width="100%" height="100%">
+                 <ComposedChart data={chartData} margin={{top: 10, right: 10, left: 10, bottom: 0}}>
+                    <defs>
+                      <linearGradient id="aiConfidence" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.15}/>
+                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: 'var(--text-tertiary)', fontSize: 11, fontFamily: 'monospace'}} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--text-tertiary)', fontSize: 11, fontFamily: 'monospace'}} tickFormatter={(v)=>`${currency}${((v * rate) / 1000).toFixed(0)}k`} />
+                    <Tooltip 
+                      contentStyle={{background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', border: '1px solid var(--border)', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
+                      labelStyle={{fontFamily: 'monospace', fontWeight: 800, color: 'var(--text-primary)'}}
+                      formatter={(value: any, name: string) => [fmt(Number(value), true), name === 'actual' ? 'Bank Balance' : name === 'aiBase' ? 'Expected Balance' : 'Prediction Match']}
+                    />
+                    
+                    <ReferenceLine x="05/29" stroke="var(--accent)" strokeDasharray="3 3" label={{ position: 'top', value: 'Today', fill: 'var(--accent)', fontSize: 11, fontFamily: 'monospace' }} />
+                    <ReferenceLine y={90000} stroke="var(--danger)" strokeDasharray="2 2" />
+                    
+                    <Area type="monotone" dataKey="aiHigh" stackId="1" stroke="none" fill="url(#aiConfidence)" />
+                    <Line type="monotone" dataKey="aiBase" stroke="#8B5CF6" strokeWidth={3} dot={{r: 0}} activeDot={{r: 6, strokeWidth: 0}} />
+                    {timeHorizon === '90d' && <Line type="monotone" dataKey="actual" stroke="var(--text-primary)" strokeWidth={2} dot={{r: 4}} />}
+                 </ComposedChart>
+               </ResponsiveContainer>
+             </div>
+             
+             {!scenTriggered && timeHorizon === '90d' && (
+               <div style={{position: 'absolute', bottom: '1.5rem', left: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '0.75rem 1rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.75rem', backdropFilter: 'blur(10px)'}}>
+                  <div style={{background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', padding: '5px', borderRadius: '50%'}}><ShieldAlert size={16} /></div>
+                  <div style={{flex: 1}}>
+                    <div style={{fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)'}}>Cash Deficit Zone Expected</div>
+                    <div style={{fontSize: '0.75rem', color: 'var(--text-secondary)'}}>System calculates 84% chance of dropping below safety limit by June 12th.</div>
+                  </div>
+               </div>
+             )}
+          </div>
+
+          {/* RIGHT SIDE: Intelligent AR Collections */}
+          <div className={cx(styles.glassCard, styles.arGrid)}>
+            <div className={styles.glassCardHeader}>
+              <div className={styles.glassCardTitle}>
+                <Database size={20} color="var(--accent)" />
+                Unpaid Invoices & Collections
+              </div>
+              <MoreHorizontal size={18} color="var(--text-tertiary)" />
+            </div>
+
+            <div className={styles.arMetrics}>
+              <div className={styles.arScore}>
+                <div className={styles.arLabel}>Avg Risk Score</div>
+                <div className={styles.arBig}>68/100</div>
+              </div>
+              <div className={styles.arScore}>
+                <div className={styles.arLabel}>Recovered by AI</div>
+                <div className={styles.arBig}>14%</div>
               </div>
             </div>
-          </div>
-        )}
 
-      </div>
+            <div className={styles.arList}>
+              {filteredInvoices.length > 0 ? filteredInvoices.map(client => (
+                <div key={client.id} className={styles.arItem}>
+                  <div className={styles.arClientInfo}>
+                    <div className={styles.arAvatar}>{client.initial}</div>
+                    <div className={styles.arMeta}>
+                      <div className={styles.arName}>{client.client} <span className={cx(styles.arRisk, styles[client.risk as keyof typeof styles])}>{client.score} RISK</span></div>
+                      <div className={styles.arDunningStatus}>
+                        {client.risk === 'high' ? <ShieldAlert size={10} color="var(--danger)"/> : <CheckCircle2 size={10} color="var(--success)"/>}
+                        {client.statusText}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{textAlign: 'right'}}>
+                    <div style={{fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)'}}>{fmt(client.amount, true)}</div>
+                    <div style={{fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'monospace'}}>{client.latency}</div>
+                  </div>
+                </div>
+              )) : (
+                <div style={{padding: '2rem', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.8rem'}}>No clients found.</div>
+              )}
+            </div>
+          </div>
+
+          {/* BOTTOM FULL WIDTH: Ledger / Expense Intercept */}
+          <div className={cx(styles.glassCard, styles.dataGridCard)}>
+            <div className={styles.glassCardHeader}>
+              <div className={styles.glassCardTitle}>
+                <LayoutDashboard size={20} color="var(--accent)" />
+                Recent Transactions & Alerts
+              </div>
+            </div>
+            
+            <table className={styles.dataTable}>
+              <thead>
+                <tr>
+                  <th>Trans. ID</th>
+                  <th>Vendor / Company</th>
+                  <th>Category</th>
+                  <th>Amount</th>
+                  <th>Payment Status</th>
+                  <th>System Alert</th>
+                </tr>
+              </thead>
+              <tbody>
+                {txGrid.map(tx => (
+                  <tr key={tx.id}>
+                    <td style={{fontFamily: 'monospace', color: 'var(--text-tertiary)'}}>{tx.id}</td>
+                    <td style={{fontWeight: 700, color: 'var(--text-primary)'}}>{tx.entity}</td>
+                    <td>{tx.type}</td>
+                    <td style={{fontWeight: 800, color: tx.amt > 0 ? 'var(--success)' : 'var(--text-primary)'}}>{fmt(tx.amt)}</td>
+                    <td>
+                      <div className={cx(styles.statusPill, styles[tx.status as keyof typeof styles])}>
+                        <div style={{width: 6, height: 6, borderRadius: '50%', background: 'currentColor'}}></div>
+                        {tx.status}
+                      </div>
+                    </td>
+                    <td>
+                      {tx.flag !== '-' ? (
+                        <span style={{
+                          color: tx.status === 'completed' && tx.flag.includes('fixed') ? 'var(--success)' : 'var(--danger)', 
+                          fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px'
+                        }}>
+                           {tx.status === 'completed' && tx.flag.includes('fixed') ? <CheckCircle2 size={12} /> : <ShieldAlert size={12} />} 
+                           {tx.flag}
+                        </span>
+                      ) : (
+                        <span style={{color: 'var(--text-tertiary)'}}>-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* IMMERSIVE SCENARIO COMMAND INPUT */}
+          <div className={styles.scenarioBar}>
+            <Bot size={28} className={styles.scenIcon} />
+            <input 
+              type="text" 
+              className={styles.scenInput} 
+              placeholder="Type an idea (e.g., What if we hire 2 more people next month?)..." 
+              value={scenInput}
+              onChange={(e) => setScenInput(e.target.value)}
+              onKeyDown={handleKeyPress}
+            />
+            <button className={styles.scenBtn} onClick={handleScenarioSubmit} disabled={!scenInput.trim()} style={{opacity: scenInput.trim() ? 1 : 0.6}}>
+               <Play size={16} style={{display:'flex', margin:'auto'}} />
+            </button>
+          </div>
+
+          {scenTriggered && (
+             <motion.div 
+               initial={{opacity: 0, y: -10}} animate={{opacity: 1, y: 0}}
+               style={{gridColumn: '1 / -1', background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.3)', padding: '1rem', borderRadius: '12px', marginTop: '-0.5rem', display: 'flex', alignItems: 'center', gap: '1rem'}}
+             >
+                <div style={{background: 'var(--accent)', color: 'white', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800}}>ACTIVE SCENARIO TEST</div>
+                <div style={{color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 600}}>"{scenMsg}"</div>
+                <button onClick={()=>setScenTriggered(false)} style={{marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700}}>Clear Scenario</button>
+             </motion.div>
+          )}
+
+        </div>
+      </main>
+
     </div>
   );
 }
 
-// Utility for concatenating classes
+// Utility function
 function cx(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(' ');
 }
